@@ -28,11 +28,11 @@ def serve_game():
             .wallet-area { display: flex; align-items: center; gap: 10px; background: var(--bg-main); padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #2f4553; }
             .wallet-add { background: var(--accent-yellow); color: #000; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
             
-            /* Views Management */
+            /* Views */
             .view { display: none; flex-grow: 1; flex-direction: column; }
             .view.active { display: flex; }
 
-            /* --- CASINO GRID LOBBY VIEW --- */
+            /* --- LOBBY GRID & ILLUSTRATED CARDS --- */
             .lobby-container { padding: 12px; overflow-y: auto; flex-grow: 1; padding-bottom: 90px; }
             .filter-row { display: flex; gap: 10px; margin-bottom: 15px; }
             .filter-dropdown { background: var(--bg-secondary); color: var(--text-main); border: 1px solid #2f4553; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
@@ -40,25 +40,50 @@ def serve_game():
             .games-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
             .game-tile {
                 background: var(--bg-secondary); border-radius: 12px; overflow: hidden;
-                cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
                 transition: transform 0.1s; border: 1px solid rgba(255,255,255,0.05);
             }
-            .game-tile:active { transform: scale(0.96); }
+            .game-tile:active { transform: scale(0.95); }
             
             .game-tile-banner {
-                height: 110px; display: flex; flex-direction: column; justify-content: flex-end;
-                padding: 10px; font-weight: 900; font-size: 15px; text-transform: uppercase;
-                letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); position: relative;
+                height: 120px; display: flex; flex-direction: column; justify-content: flex-end;
+                padding: 10px; font-weight: 900; font-size: 14px; text-transform: uppercase;
+                letter-spacing: 0.5px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); position: relative;
             }
+            /* Illustrated Card Background Gradients & Icons */
             .tile-bj { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+            .tile-bj::after { content: "🃏"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+
             .tile-mines { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+            .tile-mines::after { content: "💣"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+
             .tile-dice { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+            .tile-dice::after { content: "🎲"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+
             .tile-plinko { background: linear-gradient(135deg, #f12711, #f5af19); }
+            .tile-plinko::after { content: "⚪"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+
             .tile-limbo { background: linear-gradient(135deg, #f7971e, #ffd200); color: #000; text-shadow: none; }
+            .tile-limbo::after { content: "🚀"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+
             .tile-crash { background: linear-gradient(135deg, #11998e, #38ef7d); }
+            .tile-crash::after { content: "📈"; position: absolute; top: 15px; right: 12px; font-size: 32px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
 
             .game-tile-footer { padding: 8px 10px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; background: var(--bg-secondary); }
             .online-dot { width: 7px; height: 7px; background: #00e701; border-radius: 50%; box-shadow: 0 0 6px #00e701; }
+
+            /* --- GENERIC SUB-GAME STYLES --- */
+            .subgame-container { padding: 20px; display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
+            .subgame-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: var(--accent-yellow); }
+            .subgame-card { background: var(--bg-secondary); border-radius: 12px; padding: 20px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+            
+            /* Mines Grid */
+            .mines-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0; }
+            .mine-tile { background: var(--bg-card); height: 60px; border-radius: 8px; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+            .mine-tile:hover { border-color: var(--btn-primary); }
+
+            /* Dice Slider */
+            .dice-display { font-size: 36px; font-weight: 900; margin: 15px 0; color: var(--accent-yellow); }
 
             /* --- BLACKJACK GAME INTERFACE --- */
             .game-table { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 15px 10px; min-height: 340px; position: relative; }
@@ -71,7 +96,6 @@ def serve_game():
             .insurance-btns { display: flex; gap: 10px; justify-content: center; }
             .ins-btn { padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
             .ins-yes { background: #00e701; color: #011d01; } .ins-no { background: var(--bg-card); color: white; }
-            .ins-yes:disabled { opacity: 0.4; cursor: not-allowed; }
 
             .deck-shoe { position: absolute; top: 15px; right: 20px; font-size: 24px; background: #ffffff; border-radius: 4px; width: 32px; height: 20px; box-shadow: 0 3px 0 #b1bad3, 0 6px 0 #ffffff; }
             .hand-section { display: flex; flex-direction: column; align-items: center; width: 100%; }
@@ -134,42 +158,41 @@ def serve_game():
                 </div>
 
                 <!-- Mines Tile -->
-                <div class="game-tile" onclick="alert('Coming soon!')">
+                <div class="game-tile" onclick="switchView('mines')">
                     <div class="game-tile-banner tile-mines">Mines</div>
                     <div class="game-tile-footer"><div class="online-dot"></div> 2,485 playing</div>
                 </div>
 
                 <!-- Dice Tile -->
-                <div class="game-tile" onclick="alert('Coming soon!')">
+                <div class="game-tile" onclick="switchView('dice')">
                     <div class="game-tile-banner tile-dice">Dice</div>
                     <div class="game-tile-footer"><div class="online-dot"></div> 2,121 playing</div>
                 </div>
 
                 <!-- Plinko Tile -->
-                <div class="game-tile" onclick="alert('Coming soon!')">
+                <div class="game-tile" onclick="switchView('plinko')">
                     <div class="game-tile-banner tile-plinko">Plinko</div>
                     <div class="game-tile-footer"><div class="online-dot"></div> 1,351 playing</div>
                 </div>
 
                 <!-- Limbo Tile -->
-                <div class="game-tile" onclick="alert('Coming soon!')">
+                <div class="game-tile" onclick="switchView('limbo')">
                     <div class="game-tile-banner tile-limbo">Limbo</div>
                     <div class="game-tile-footer"><div class="online-dot"></div> 1,742 playing</div>
                 </div>
 
                 <!-- Crash Tile -->
-                <div class="game-tile" onclick="alert('Coming soon!')">
+                <div class="game-tile" onclick="switchView('crash')">
                     <div class="game-tile-banner tile-crash">Crash</div>
                     <div class="game-tile-footer"><div class="online-dot"></div> 1,221 playing</div>
                 </div>
             </div>
         </div>
 
-        <!-- VIEW 2: BLACKJACK GAME INTERFACE -->
+        <!-- VIEW 2: BLACKJACK GAME -->
         <div id="game-view" class="view">
             <main class="game-table">
                 <div class="deck-shoe"></div>
-                
                 <video id="meme-video" class="bust-meme" src="https://files.catbox.moe/q89owi.mp4" playsinline></video>
 
                 <div class="insurance-overlay" id="insurance-prompt">
@@ -187,9 +210,7 @@ def serve_game():
                     <div class="score-bubble" id="dealer-score">-</div>
                     <div class="cards-container" id="dealer-cards"></div>
                 </div>
-                
                 <div class="rule-banner">BLACKJACK PAYS 3 TO 2<br>INSURANCE PAYS 2 TO 1</div>
-                
                 <div class="hand-section">
                     <div class="hands-split-wrapper" id="player-hands-wrapper">
                         <div class="single-hand active-hand" id="hand-0">
@@ -217,6 +238,38 @@ def serve_game():
                 </div>
                 <button class="back-to-lobby" onclick="switchView('lobby')">← Back to Casino Lobby</button>
             </section>
+        </div>
+
+        <!-- VIEW 3: WORKING MINES MINI-GAME -->
+        <div id="mines-view" class="view subgame-container">
+            <div class="subgame-title">MINES</div>
+            <div class="subgame-card">
+                <p>Uncover gems safely and avoid the hidden mine!</p>
+                <div class="mines-grid" id="mines-board">
+                    <!-- 8 interactive tiles -->
+                    <div class="mine-tile" onclick="clickMine(0)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(1)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(2)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(3)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(4)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(5)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(6)">❓</div>
+                    <div class="mine-tile" onclick="clickMine(7)">❓</div>
+                </div>
+                <button class="btn-main-bet" onclick="resetMines()">Play / Reset ($10)</button>
+                <button class="back-to-lobby" onclick="switchView('lobby')">← Back to Lobby</button>
+            </div>
+        </div>
+
+        <!-- VIEW 4: WORKING DICE MINI-GAME -->
+        <div id="dice-view" class="view subgame-container">
+            <div class="subgame-title">DICE</div>
+            <div class="subgame-card">
+                <p>Roll over 50 to win double your bet!</p>
+                <div class="dice-display" id="dice-result">50.00</div>
+                <button class="btn-main-bet" onclick="rollDice()">Roll Dice ($10)</button>
+                <button class="back-to-lobby" onclick="switchView('lobby')">← Back to Lobby</button>
+            </div>
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -248,13 +301,56 @@ def serve_game():
             function switchView(viewName) {
                 document.getElementById('lobby-view').classList.remove('active');
                 document.getElementById('game-view').classList.remove('active');
-                if (viewName === 'lobby') {
-                    document.getElementById('lobby-view').classList.add('active');
+                document.getElementById('mines-view').classList.remove('active');
+                document.getElementById('dice-view').classList.remove('active');
+                
+                document.getElementById(viewName + '-view').classList.add('active');
+            }
+
+            // --- MINES LOGIC ---
+            let minePosition = Math.floor(Math.random() * 8);
+            let minesActive = false;
+            function resetMines() {
+                if (balance < 10) { alert("Not enough balance!"); return; }
+                balance -= 10; updateBalance();
+                minePosition = Math.floor(Math.random() * 8);
+                minesActive = true;
+                let tiles = document.getElementsByClassName('mine-tile');
+                for(let t of tiles) { t.innerText = '❓'; t.style.background = 'var(--bg-card)'; }
+            }
+            function clickMine(idx) {
+                if (!minesActive) { alert("Click Play / Reset first!"); return; }
+                let tiles = document.getElementsByClassName('mine-tile');
+                if (idx === minePosition) {
+                    tiles[idx].innerText = '💣';
+                    tiles[idx].style.background = '#e9113c';
+                    alert("Boom! You hit a mine.");
+                    minesActive = false;
                 } else {
-                    document.getElementById('game-view').classList.add('active');
+                    tiles[idx].innerText = '💎';
+                    tiles[idx].style.background = '#00e701';
+                    balance += 18; updateBalance();
+                    alert("Safe! Won $18!");
+                    minesActive = false;
                 }
             }
 
+            // --- DICE LOGIC ---
+            function rollDice() {
+                if (balance < 10) { alert("Not enough balance!"); return; }
+                balance -= 10; updateBalance();
+                let roll = (Math.random() * 100).toFixed(2);
+                document.getElementById('dice-result').innerText = roll;
+                if (roll > 50) {
+                    balance += 20;
+                    alert("Rolled " + roll + "! You Won $20!");
+                } else {
+                    alert("Rolled " + roll + "! You Lost.");
+                }
+                updateBalance();
+            }
+
+            // --- BLACKJACK ENGINE ---
             function playSound(times, interval) {
                 let count = 0;
                 let soundInterval = setInterval(() => {
