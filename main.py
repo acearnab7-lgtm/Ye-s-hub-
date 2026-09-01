@@ -32,28 +32,35 @@ def serve_game():
             .view { display: none; flex-grow: 1; flex-direction: column; }
             .view.active { display: flex; }
 
-            /* --- LOBBY VIEW --- */
-            .lobby-container { padding: 15px; overflow-y: auto; flex-grow: 1; padding-bottom: 80px; }
-            .promo-banner {
-                background: linear-gradient(135deg, #2b1055, #7597de);
-                border-radius: 12px; padding: 20px; position: relative; margin-bottom: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.4); overflow: hidden;
-            }
-            .promo-banner h2 { margin: 0 0 10px 0; font-size: 22px; font-weight: 900; }
-            .btn-learn { background: var(--accent-yellow); color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+            /* --- CASINO GRID LOBBY VIEW --- */
+            .lobby-container { padding: 12px; overflow-y: auto; flex-grow: 1; padding-bottom: 90px; }
+            .filter-row { display: flex; gap: 10px; margin-bottom: 15px; }
+            .filter-dropdown { background: var(--bg-secondary); color: var(--text-main); border: 1px solid #2f4553; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
             
-            .game-grid-card {
-                background: linear-gradient(135deg, #1e3c72, #2a5298);
-                border-radius: 12px; padding: 20px; margin-bottom: 15px; cursor: pointer;
-                display: flex; justify-content: space-between; align-items: center;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.1s;
+            .games-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .game-tile {
+                background: var(--bg-secondary); border-radius: 12px; overflow: hidden;
+                cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                transition: transform 0.1s; border: 1px solid rgba(255,255,255,0.05);
             }
-            .game-grid-card:active { transform: scale(0.98); }
-            .game-grid-card h3 { margin: 0 0 5px 0; font-size: 20px; }
-            .game-grid-card p { margin: 0; color: var(--text-muted); font-size: 13px; }
-            .game-icon-preview { font-size: 32px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; }
+            .game-tile:active { transform: scale(0.96); }
+            
+            .game-tile-banner {
+                height: 110px; display: flex; flex-direction: column; justify-content: flex-end;
+                padding: 10px; font-weight: 900; font-size: 15px; text-transform: uppercase;
+                letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); position: relative;
+            }
+            .tile-bj { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+            .tile-mines { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+            .tile-dice { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+            .tile-plinko { background: linear-gradient(135deg, #f12711, #f5af19); }
+            .tile-limbo { background: linear-gradient(135deg, #f7971e, #ffd200); color: #000; text-shadow: none; }
+            .tile-crash { background: linear-gradient(135deg, #11998e, #38ef7d); }
 
-            /* --- BLACKJACK VIEW --- */
+            .game-tile-footer { padding: 8px 10px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; background: var(--bg-secondary); }
+            .online-dot { width: 7px; height: 7px; background: #00e701; border-radius: 50%; box-shadow: 0 0 6px #00e701; }
+
+            /* --- BLACKJACK GAME INTERFACE --- */
             .game-table { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 15px 10px; min-height: 340px; position: relative; }
             .bust-meme { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 260px; border-radius: 12px; pointer-events: none; z-index: 50; opacity: 0.25; mix-blend-mode: screen; filter: contrast(1.4) saturate(1.2) drop-shadow(0 0 15px rgba(255,255,255,0.3)); }
 
@@ -112,37 +119,49 @@ def serve_game():
             </div>
         </header>
 
-        <!-- VIEW 1: CASINO LOBBY -->
+        <!-- VIEW 1: CASINO GRID LOBBY -->
         <div id="lobby-view" class="view active lobby-container">
-            <div class="promo-banner">
-                <h2>$100,000 Weekly Raffle</h2>
-                <button class="btn-learn" onclick="switchView('game')">Play Now</button>
+            <div class="filter-row">
+                <div class="filter-dropdown">All Publishers ▾</div>
+                <div class="filter-dropdown">Popular ▾</div>
             </div>
             
-            <div style="font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">Featured Games</div>
-            
-            <div class="game-grid-card" onclick="switchView('game')">
-                <div>
-                    <h3>Blackjack</h3>
-                    <p>Classic 6-Deck Vegas Rules</p>
+            <div class="games-grid">
+                <!-- Blackjack Tile -->
+                <div class="game-tile" onclick="switchView('game')">
+                    <div class="game-tile-banner tile-bj">Blackjack</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 1,527 playing</div>
                 </div>
-                <div class="game-icon-preview">🃏</div>
-            </div>
 
-            <div class="game-grid-card" onclick="alert('Coming soon!')">
-                <div>
-                    <h3>Roulette</h3>
-                    <p>European & American Tables</p>
+                <!-- Mines Tile -->
+                <div class="game-tile" onclick="alert('Coming soon!')">
+                    <div class="game-tile-banner tile-mines">Mines</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 2,485 playing</div>
                 </div>
-                <div class="game-icon-preview">🎡</div>
-            </div>
 
-            <div class="game-grid-card" onclick="alert('Coming soon!')">
-                <div>
-                    <h3>Slots</h3>
-                    <p>Thousands of Crypto Slots</p>
+                <!-- Dice Tile -->
+                <div class="game-tile" onclick="alert('Coming soon!')">
+                    <div class="game-tile-banner tile-dice">Dice</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 2,121 playing</div>
                 </div>
-                <div class="game-icon-preview">🎰</div>
+
+                <!-- Plinko Tile -->
+                <div class="game-tile" onclick="alert('Coming soon!')">
+                    <div class="game-tile-banner tile-plinko">Plinko</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 1,351 playing</div>
+                </div>
+
+                <!-- Limbo Tile -->
+                <div class="game-tile" onclick="alert('Coming soon!')">
+                    <div class="game-tile-banner tile-limbo">Limbo</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 1,742 playing</div>
+                </div>
+
+                <!-- Crash Tile -->
+                <div class="game-tile" onclick="alert('Coming soon!')">
+                    <div class="game-tile-banner tile-crash">Crash</div>
+                    <div class="game-tile-footer"><div class="online-dot"></div> 1,221 playing</div>
+                </div>
             </div>
         </div>
 
