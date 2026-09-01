@@ -28,19 +28,11 @@ def serve_game():
             
             .game-table { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 15px 10px; min-height: 380px; position: relative; }
             
-            /* --- SUBTLE PLASTIC WATERMARK MEME VIDEO (OPACITY 0.25) --- */
+            /* --- SUBTLE PLASTIC WATERMARK MEME VIDEO --- */
             .bust-meme {
-                display: none;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 260px;
-                border-radius: 12px;
-                pointer-events: none;
-                z-index: 50;
-                opacity: 0.25;
-                mix-blend-mode: screen;
+                display: none; position: absolute; top: 50%; left: 50%;
+                transform: translate(-50%, -50%); width: 260px; border-radius: 12px;
+                pointer-events: none; z-index: 50; opacity: 0.25; mix-blend-mode: screen;
                 filter: contrast(1.4) saturate(1.2) drop-shadow(0 0 15px rgba(255,255,255,0.3));
             }
 
@@ -108,7 +100,6 @@ def serve_game():
         <main class="game-table">
             <div class="deck-shoe"></div>
             
-            <!-- UNMUTED BUST MEME VIDEO (LOW OPACITY WATERMARK) -->
             <video id="meme-video" class="bust-meme" src="https://files.catbox.moe/q89owi.mp4" playsinline></video>
 
             <div class="insurance-overlay" id="insurance-prompt">
@@ -151,8 +142,8 @@ def serve_game():
             <div class="actions-grid">
                 <button class="action-btn" id="btn-hit" onclick="hitAction()" disabled>Hit 🗂️</button>
                 <button class="action-btn" id="btn-stand" onclick="standAction()" disabled>Stand ✋</button>
-                <button class="action-btn" id="btn-split" onclick="splitAction()" disabled>Split 🎴</button>
-                <button class="action-btn" id="btn-double" onclick="doubleAction()" disabled>Double 2×</button>
+                <button class="action-btn" id="btn-split" disabled>Split 🎴</button>
+                <button class="action-btn" id="btn-double" disabled>Double 2×</button>
             </div>
             <div class="extra-actions-row">
                 <div class="icon-btns"><div class="icon-circle">⚙️</div><div class="icon-circle">📈</div></div>
@@ -171,6 +162,11 @@ def serve_game():
 
         <script>
             const dealSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
+            
+            // --- CONNECTED SUSPENSE MP3 ---
+            const suspenseAudio = new Audio('https://files.catbox.moe/4nqth7.mp3');
+            suspenseAudio.loop = true;
+
             const memeVideo = document.getElementById('meme-video');
 
             let balance = 100.00; let currentBet = 10.00; let insuranceBet = 0;
@@ -186,6 +182,30 @@ def serve_game():
                     let s = dealSound.cloneNode(); s.volume = 0.5; s.play();
                     count++; if (count >= times) clearInterval(soundInterval);
                 }, interval);
+            }
+
+            function stopSuspenseMusic() {
+                suspenseAudio.pause();
+                suspenseAudio.currentTime = 0;
+            }
+
+            function checkSuspenseCondition() {
+                if (gameOver) {
+                    stopSuspenseMusic();
+                    return;
+                }
+                let hand = playerHands[activeHandIdx];
+                let pScore = calculateScore(hand);
+                let dCardVal = getCardValue(dealerHand[0]);
+
+                // Player 12 to 16 against Dealer 7 to Ace/10
+                if (pScore >= 12 && pScore <= 16 && dCardVal >= 7 && dCardVal <= 11) {
+                    if (suspenseAudio.paused) {
+                        suspenseAudio.play().catch(e => console.log("Audio blocked:", e));
+                    }
+                } else {
+                    stopSuspenseMusic();
+                }
             }
 
             function buildDeck() {
@@ -228,6 +248,7 @@ def serve_game():
             function dealHand() {
                 if (balance < currentBet) return;
                 balance -= currentBet; insuranceBet = 0; updateBalance();
+                stopSuspenseMusic();
                 
                 memeVideo.style.display = 'none';
                 memeVideo.pause();
@@ -269,6 +290,7 @@ def serve_game():
 
                 if (calculateScore(dealerHand) === 21) {
                     renderTable(false);
+                    stopSuspenseMusic();
                     if (insuranceBet > 0) { balance += insuranceBet * 3; setTimeout(() => alert("Dealer has Blackjack. Insurance pays!"), 500); } 
                     else { setTimeout(() => alert("Dealer has Blackjack!"), 500); }
                     if (calculateScore(playerHands[0]) === 21) balance += currentBet;
@@ -283,10 +305,11 @@ def serve_game():
                 let hand = playerHands[0];
                 let pScore = calculateScore(hand);
 
-                // Enable Split & Double
                 const canSplit = (getCardValue(hand[0]) === getCardValue(hand[1])) && balance >= currentBet;
                 document.getElementById('btn-split').disabled = !canSplit;
                 document.getElementById('btn-double').disabled = balance < currentBet;
+
+                checkSuspenseCondition();
 
                 if (pScore === 21) {
                     resolveDealerTurn();
@@ -305,11 +328,12 @@ def serve_game():
 
                 let score = calculateScore(hand);
                 renderTable(true);
+                checkSuspenseCondition();
 
                 if (score > 21) {
-                    // Trigger Meme Video on Bust
+                    stopSuspenseMusic();
                     memeVideo.style.display = 'block';
-                    memeVideo.play().catch(e => console.log("Audio play blocked:", e));
+                    memeVideo.play().catch(e => console.log("Audio blocked:", e));
                     setTimeout(standAction, 2000);
                 } else if (score === 21) {
                     setTimeout(standAction, 800);
@@ -324,6 +348,7 @@ def serve_game():
                 let hand = playerHands[activeHandIdx];
                 hand.push(deck.pop());
                 playSound(1, 0);
+                stopSuspenseMusic();
 
                 let score = calculateScore(hand);
                 renderTable(true);
@@ -349,15 +374,17 @@ def serve_game():
                 activeHandIdx = 0;
 
                 renderTable(true);
+                checkSuspenseCondition();
                 document.getElementById('btn-split').disabled = true;
                 document.getElementById('btn-double').disabled = balance < currentBet;
             }
 
             function standAction() {
+                stopSuspenseMusic();
                 if (activeHandIdx < playerHands.length - 1) {
                     activeHandIdx++;
                     renderTable(true);
-                    let hand = playerHands[activeHandIdx];
+                    checkSuspenseCondition();
                     document.getElementById('btn-double').disabled = balance < currentBet;
                     document.getElementById('btn-split').disabled = true;
                 } else {
@@ -367,6 +394,7 @@ def serve_game():
 
             function resolveDealerTurn() {
                 gameOver = true;
+                stopSuspenseMusic();
                 let allBust = playerHands.every(h => calculateScore(h) > 21);
                 
                 if (allBust) {
