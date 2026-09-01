@@ -28,7 +28,7 @@ def serve_game():
             
             .game-table { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 15px 10px; min-height: 380px; position: relative; }
             
-            /* --- PLASTIC WATERMARK UNMUTED MEME VIDEO --- */
+            /* --- SUBTLE PLASTIC WATERMARK MEME VIDEO (OPACITY 0.25) --- */
             .bust-meme {
                 display: none;
                 position: absolute;
@@ -39,7 +39,7 @@ def serve_game():
                 border-radius: 12px;
                 pointer-events: none;
                 z-index: 50;
-                opacity: 0.65;
+                opacity: 0.25;
                 mix-blend-mode: screen;
                 filter: contrast(1.4) saturate(1.2) drop-shadow(0 0 15px rgba(255,255,255,0.3));
             }
@@ -55,9 +55,16 @@ def serve_game():
             .ins-yes:disabled { opacity: 0.4; cursor: not-allowed; }
 
             .deck-shoe { position: absolute; top: 15px; right: 20px; font-size: 24px; background: #ffffff; border-radius: 4px; width: 32px; height: 20px; box-shadow: 0 3px 0 #b1bad3, 0 6px 0 #ffffff; }
+            
             .hand-section { display: flex; flex-direction: column; align-items: center; width: 100%; }
+            .hands-split-wrapper { display: flex; justify-content: center; gap: 15px; width: 100%; }
+            .single-hand { display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; }
+            .single-hand.active-hand { transform: scale(1.05); }
+            .single-hand.active-hand .score-bubble { box-shadow: 0 0 10px #1475e1; }
+
             .score-bubble { background: #2f4553; color: #fff; padding: 4px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
             .cards-container { display: flex; justify-content: center; min-height: 105px; }
+            
             .card { width: 65px; height: 95px; background: #ffffff; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; font-weight: 800; box-shadow: -4px 4px 10px rgba(0,0,0,0.4); position: relative; opacity: 0; animation: dealSlide 0.7s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
             .card:nth-child(1) { animation-delay: 0.1s; } .card:nth-child(2) { animation-delay: 0.6s; } .card:nth-child(3) { animation-delay: 0.1s; } .card:nth-child(4) { animation-delay: 0.1s; }
             .card:not(:first-child) { margin-left: -32px; }
@@ -101,7 +108,7 @@ def serve_game():
         <main class="game-table">
             <div class="deck-shoe"></div>
             
-            <!-- UNMUTED BUST MEME VIDEO -->
+            <!-- UNMUTED BUST MEME VIDEO (LOW OPACITY WATERMARK) -->
             <video id="meme-video" class="bust-meme" src="https://files.catbox.moe/q89owi.mp4" playsinline></video>
 
             <div class="insurance-overlay" id="insurance-prompt">
@@ -119,10 +126,16 @@ def serve_game():
                 <div class="score-bubble" id="dealer-score">-</div>
                 <div class="cards-container" id="dealer-cards"></div>
             </div>
+            
             <div class="rule-banner">BLACKJACK PAYS 3 TO 2<br>INSURANCE PAYS 2 TO 1</div>
+            
             <div class="hand-section">
-                <div class="score-bubble" id="player-score">-</div>
-                <div class="cards-container" id="player-cards"></div>
+                <div class="hands-split-wrapper" id="player-hands-wrapper">
+                    <div class="single-hand active-hand" id="hand-0">
+                        <div class="score-bubble" id="player-score-0">-</div>
+                        <div class="cards-container" id="player-cards-0"></div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -138,8 +151,8 @@ def serve_game():
             <div class="actions-grid">
                 <button class="action-btn" id="btn-hit" onclick="hitAction()" disabled>Hit 🗂️</button>
                 <button class="action-btn" id="btn-stand" onclick="standAction()" disabled>Stand ✋</button>
-                <button class="action-btn" id="btn-split" disabled>Split 🎴</button>
-                <button class="action-btn" id="btn-double" disabled>Double 2×</button>
+                <button class="action-btn" id="btn-split" onclick="splitAction()" disabled>Split 🎴</button>
+                <button class="action-btn" id="btn-double" onclick="doubleAction()" disabled>Double 2×</button>
             </div>
             <div class="extra-actions-row">
                 <div class="icon-btns"><div class="icon-circle">⚙️</div><div class="icon-circle">📈</div></div>
@@ -161,8 +174,8 @@ def serve_game():
             const memeVideo = document.getElementById('meme-video');
 
             let balance = 100.00; let currentBet = 10.00; let insuranceBet = 0;
-            let deck = []; let dealerHand = []; let playerHand = [];
-            let gameOver = true; let waitingForInsurance = false;
+            let deck = []; let dealerHand = []; let playerHands = [];
+            let activeHandIdx = 0; let gameOver = true; let waitingForInsurance = false;
 
             const suits = { '♠': 'black', '♥': 'red', '♦': 'red', '♣': 'black' };
             const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -216,19 +229,22 @@ def serve_game():
                 if (balance < currentBet) return;
                 balance -= currentBet; insuranceBet = 0; updateBalance();
                 
-                // Hide and reset meme video
                 memeVideo.style.display = 'none';
                 memeVideo.pause();
                 memeVideo.currentTime = 0;
 
-                buildDeck(); dealerHand = [deck.pop(), deck.pop()]; playerHand = [deck.pop(), deck.pop()];
+                buildDeck(); 
+                dealerHand = [deck.pop(), deck.pop()]; 
+                playerHands = [[deck.pop(), deck.pop()]];
+                activeHandIdx = 0;
                 gameOver = false; waitingForInsurance = false;
                 
-                playSound(4, 300); renderTable(true);
+                playSound(4, 300); 
+                renderTable(true);
                 
                 setTimeout(() => {
                     if (dealerHand[0].value === 'A') promptInsurance();
-                    else checkInitialBlackjack();
+                    else checkInitialState();
                 }, 1300);
             }
 
@@ -255,37 +271,108 @@ def serve_game():
                     renderTable(false);
                     if (insuranceBet > 0) { balance += insuranceBet * 3; setTimeout(() => alert("Dealer has Blackjack. Insurance pays!"), 500); } 
                     else { setTimeout(() => alert("Dealer has Blackjack!"), 500); }
-                    if (calculateScore(playerHand) === 21) balance += currentBet;
+                    if (calculateScore(playerHands[0]) === 21) balance += currentBet;
                     gameOver = true; updateBalance(); updateControls();
                 } else {
                     if (insuranceBet > 0) setTimeout(() => alert("Dealer doesn't have Blackjack. Insurance lost."), 300);
-                    checkInitialBlackjack();
+                    checkInitialState();
                 }
             }
 
-            function checkInitialBlackjack() {
-                if (calculateScore(playerHand) === 21) resolveDealerTurn();
-                else updateControls();
+            function checkInitialState() {
+                let hand = playerHands[0];
+                let pScore = calculateScore(hand);
+
+                // Enable Split & Double
+                const canSplit = (getCardValue(hand[0]) === getCardValue(hand[1])) && balance >= currentBet;
+                document.getElementById('btn-split').disabled = !canSplit;
+                document.getElementById('btn-double').disabled = balance < currentBet;
+
+                if (pScore === 21) {
+                    resolveDealerTurn();
+                } else {
+                    updateControls();
+                }
             }
 
             function hitAction() {
-                playerHand.push(deck.pop());
+                let hand = playerHands[activeHandIdx];
+                hand.push(deck.pop());
                 playSound(1, 0);
-                let score = calculateScore(playerHand);
+                
+                document.getElementById('btn-split').disabled = true;
+                document.getElementById('btn-double').disabled = true;
+
+                let score = calculateScore(hand);
                 renderTable(true);
+
                 if (score > 21) {
-                    // TRIGGER UNMUTED MEME VIDEO WITH AUDIO
+                    // Trigger Meme Video on Bust
                     memeVideo.style.display = 'block';
-                    memeVideo.play().catch(e => console.log("Audio play blocked until user gesture:", e));
-                    setTimeout(standAction, 2500); 
+                    memeVideo.play().catch(e => console.log("Audio play blocked:", e));
+                    setTimeout(standAction, 2000);
+                } else if (score === 21) {
+                    setTimeout(standAction, 800);
                 }
             }
 
-            function standAction() { resolveDealerTurn(); }
+            function doubleAction() {
+                if (balance < currentBet) return;
+                balance -= currentBet;
+                updateBalance();
+
+                let hand = playerHands[activeHandIdx];
+                hand.push(deck.pop());
+                playSound(1, 0);
+
+                let score = calculateScore(hand);
+                renderTable(true);
+
+                if (score > 21) {
+                    memeVideo.style.display = 'block';
+                    memeVideo.play().catch(e => console.log("Audio blocked:", e));
+                }
+
+                setTimeout(standAction, score > 21 ? 2000 : 800);
+            }
+
+            function splitAction() {
+                if (balance < currentBet) return;
+                balance -= currentBet;
+                updateBalance();
+
+                let hand = playerHands[0];
+                playerHands = [
+                    [hand[0], deck.pop()],
+                    [hand[1], deck.pop()]
+                ];
+                activeHandIdx = 0;
+
+                renderTable(true);
+                document.getElementById('btn-split').disabled = true;
+                document.getElementById('btn-double').disabled = balance < currentBet;
+            }
+
+            function standAction() {
+                if (activeHandIdx < playerHands.length - 1) {
+                    activeHandIdx++;
+                    renderTable(true);
+                    let hand = playerHands[activeHandIdx];
+                    document.getElementById('btn-double').disabled = balance < currentBet;
+                    document.getElementById('btn-split').disabled = true;
+                } else {
+                    resolveDealerTurn();
+                }
+            }
 
             function resolveDealerTurn() {
                 gameOver = true;
-                if (calculateScore(playerHand) <= 21) {
+                let allBust = playerHands.every(h => calculateScore(h) > 21);
+                
+                if (allBust) {
+                    renderTable(false);
+                    calculatePayouts();
+                } else {
                     let drawInterval = setInterval(() => {
                         if (calculateScore(dealerHand) < 17) {
                             dealerHand.push(deck.pop()); playSound(1, 0); renderTable(false);
@@ -294,35 +381,51 @@ def serve_game():
                         }
                     }, 800);
                     if (calculateScore(dealerHand) >= 17) { renderTable(false); calculatePayouts(); }
-                } else {
-                    renderTable(false);
-                    calculatePayouts();
                 }
             }
 
             function calculatePayouts() {
                 let dScore = calculateScore(dealerHand);
-                let pScore = calculateScore(playerHand);
-                if (pScore <= 21) {
-                    if (dScore > 21 || pScore > dScore) {
-                        balance += (pScore === 21 && playerHand.length === 2) ? currentBet * 2.5 : currentBet * 2;
-                    } else if (pScore === dScore) {
-                        balance += currentBet;
+                
+                playerHands.forEach(hand => {
+                    let pScore = calculateScore(hand);
+                    if (pScore <= 21) {
+                        if (dScore > 21 || pScore > dScore) {
+                            balance += (pScore === 21 && hand.length === 2) ? currentBet * 2.5 : currentBet * 2;
+                        } else if (pScore === dScore) {
+                            balance += currentBet;
+                        }
                     }
-                }
-                updateBalance(); updateControls();
+                });
+
+                updateBalance(); 
+                updateControls();
             }
 
             function renderTable(hideHoleCard) {
-                const dCardsElem = document.getElementById('dealer-cards'); const dScoreElem = document.getElementById('dealer-score');
+                const dCardsElem = document.getElementById('dealer-cards'); 
+                const dScoreElem = document.getElementById('dealer-score');
                 if (hideHoleCard) {
-                    dCardsElem.innerHTML = renderCard(dealerHand[0]) + renderCard(dealerHand[1], true); dScoreElem.innerText = getCardValue(dealerHand[0]);
+                    dCardsElem.innerHTML = renderCard(dealerHand[0]) + renderCard(dealerHand[1], true); 
+                    dScoreElem.innerText = getCardValue(dealerHand[0]);
                 } else {
                     dCardsElem.innerHTML = dealerHand.map(c => renderCard(c)).join('');
-                    let finalDScore = calculateScore(dealerHand); dScoreElem.innerText = finalDScore > 21 ? `BUST (${finalDScore})` : finalDScore;
+                    let finalDScore = calculateScore(dealerHand); 
+                    dScoreElem.innerText = finalDScore > 21 ? `BUST (${finalDScore})` : finalDScore;
                 }
-                document.getElementById('player-cards').innerHTML = playerHand.map(c => renderCard(c)).join('');
-                let pScore = calculateScore(playerHand); document.getElementById('player-score').innerText = pScore > 21 ? `BUST (${pScore})` : pScore;
+
+                const wrapper = document.getElementById('player-hands-wrapper');
+                wrapper.innerHTML = playerHands.map((hand, idx) => {
+                    let score = calculateScore(hand);
+                    let scoreText = score > 21 ? `BUST (${score})` : score;
+                    let isActive = (idx === activeHandIdx && !gameOver) ? 'active-hand' : '';
+                    return `
+                        <div class="single-hand ${isActive}" id="hand-${idx}">
+                            <div class="score-bubble">${scoreText}</div>
+                            <div class="cards-container">${hand.map(c => renderCard(c)).join('')}</div>
+                        </div>`;
+                }).join('');
+
                 updateControls();
             }
 
@@ -330,8 +433,15 @@ def serve_game():
                 document.getElementById('btn-bet').disabled = (!gameOver || waitingForInsurance);
                 document.getElementById('btn-hit').disabled = (gameOver || waitingForInsurance);
                 document.getElementById('btn-stand').disabled = (gameOver || waitingForInsurance);
+                if (gameOver) {
+                    document.getElementById('btn-split').disabled = true;
+                    document.getElementById('btn-double').disabled = true;
+                }
             }
-            function updateBalance() { document.getElementById('display-balance').innerText = `$${balance.toFixed(2)}`; }
+
+            function updateBalance() { 
+                document.getElementById('display-balance').innerText = `$${balance.toFixed(2)}`; 
+            }
         </script>
     </body>
     </html>
