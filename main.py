@@ -142,8 +142,8 @@ def serve_game():
             <div class="actions-grid">
                 <button class="action-btn" id="btn-hit" onclick="hitAction()" disabled>Hit 🗂️</button>
                 <button class="action-btn" id="btn-stand" onclick="standAction()" disabled>Stand ✋</button>
-                <button class="action-btn" id="btn-split" disabled>Split 🎴</button>
-                <button class="action-btn" id="btn-double" disabled>Double 2×</button>
+                <button class="action-btn" id="btn-split" onclick="splitAction()" disabled>Split 🎴</button>
+                <button class="action-btn" id="btn-double" onclick="doubleAction()" disabled>Double 2×</button>
             </div>
             <div class="extra-actions-row">
                 <div class="icon-btns"><div class="icon-circle">⚙️</div><div class="icon-circle">📈</div></div>
@@ -162,16 +162,18 @@ def serve_game():
 
         <script>
             const dealSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
-            
-            // --- CONNECTED SUSPENSE MP3 ---
-            const suspenseAudio = new Audio('https://files.catbox.moe/4nqth7.mp3');
-            suspenseAudio.loop = true;
-
             const memeVideo = document.getElementById('meme-video');
 
-            let balance = 100.00; let currentBet = 10.00; let insuranceBet = 0;
-            let deck = []; let dealerHand = []; let playerHands = [];
-            let activeHandIdx = 0; let gameOver = true; let waitingForInsurance = false;
+            let balance = 100.00; 
+            let currentBet = 10.00; 
+            let insuranceBet = 0;
+            let deck = []; 
+            let dealerHand = []; 
+            let playerHands = [];
+            let handBets = [];
+            let activeHandIdx = 0; 
+            let gameOver = true; 
+            let waitingForInsurance = false;
 
             const suits = { '♠': 'black', '♥': 'red', '♦': 'red', '♣': 'black' };
             const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -182,30 +184,6 @@ def serve_game():
                     let s = dealSound.cloneNode(); s.volume = 0.5; s.play();
                     count++; if (count >= times) clearInterval(soundInterval);
                 }, interval);
-            }
-
-            function stopSuspenseMusic() {
-                suspenseAudio.pause();
-                suspenseAudio.currentTime = 0;
-            }
-
-            function checkSuspenseCondition() {
-                if (gameOver) {
-                    stopSuspenseMusic();
-                    return;
-                }
-                let hand = playerHands[activeHandIdx];
-                let pScore = calculateScore(hand);
-                let dCardVal = getCardValue(dealerHand[0]);
-
-                // Player 12 to 16 against Dealer 7 to Ace/10
-                if (pScore >= 12 && pScore <= 16 && dCardVal >= 7 && dCardVal <= 11) {
-                    if (suspenseAudio.paused) {
-                        suspenseAudio.play().catch(e => console.log("Audio blocked:", e));
-                    }
-                } else {
-                    stopSuspenseMusic();
-                }
             }
 
             function buildDeck() {
@@ -247,8 +225,9 @@ def serve_game():
 
             function dealHand() {
                 if (balance < currentBet) return;
-                balance -= currentBet; insuranceBet = 0; updateBalance();
-                stopSuspenseMusic();
+                balance -= currentBet; 
+                insuranceBet = 0; 
+                updateBalance();
                 
                 memeVideo.style.display = 'none';
                 memeVideo.pause();
@@ -257,8 +236,10 @@ def serve_game():
                 buildDeck(); 
                 dealerHand = [deck.pop(), deck.pop()]; 
                 playerHands = [[deck.pop(), deck.pop()]];
+                handBets = [currentBet];
                 activeHandIdx = 0;
-                gameOver = false; waitingForInsurance = false;
+                gameOver = false; 
+                waitingForInsurance = false;
                 
                 playSound(4, 300); 
                 renderTable(true);
@@ -290,10 +271,9 @@ def serve_game():
 
                 if (calculateScore(dealerHand) === 21) {
                     renderTable(false);
-                    stopSuspenseMusic();
                     if (insuranceBet > 0) { balance += insuranceBet * 3; setTimeout(() => alert("Dealer has Blackjack. Insurance pays!"), 500); } 
                     else { setTimeout(() => alert("Dealer has Blackjack!"), 500); }
-                    if (calculateScore(playerHands[0]) === 21) balance += currentBet;
+                    if (calculateScore(playerHands[0]) === 21) balance += handBets[0];
                     gameOver = true; updateBalance(); updateControls();
                 } else {
                     if (insuranceBet > 0) setTimeout(() => alert("Dealer doesn't have Blackjack. Insurance lost."), 300);
@@ -302,14 +282,14 @@ def serve_game():
             }
 
             function checkInitialState() {
-                let hand = playerHands[0];
+                let hand = playerHands[activeHandIdx];
                 let pScore = calculateScore(hand);
 
-                const canSplit = (getCardValue(hand[0]) === getCardValue(hand[1])) && balance >= currentBet;
-                document.getElementById('btn-split').disabled = !canSplit;
-                document.getElementById('btn-double').disabled = balance < currentBet;
+                const canSplit = (hand.length === 2 && getCardValue(hand[0]) === getCardValue(hand[1])) && balance >= handBets[activeHandIdx];
+                const canDouble = (hand.length === 2) && balance >= handBets[activeHandIdx];
 
-                checkSuspenseCondition();
+                document.getElementById('btn-split').disabled = !canSplit;
+                document.getElementById('btn-double').disabled = !canDouble;
 
                 if (pScore === 21) {
                     resolveDealerTurn();
@@ -328,27 +308,26 @@ def serve_game():
 
                 let score = calculateScore(hand);
                 renderTable(true);
-                checkSuspenseCondition();
 
                 if (score > 21) {
-                    stopSuspenseMusic();
                     memeVideo.style.display = 'block';
                     memeVideo.play().catch(e => console.log("Audio blocked:", e));
-                    setTimeout(standAction, 2000);
+                    setTimeout(nextHandOrDealer, 2000);
                 } else if (score === 21) {
-                    setTimeout(standAction, 800);
+                    setTimeout(nextHandOrDealer, 800);
                 }
             }
 
             function doubleAction() {
-                if (balance < currentBet) return;
-                balance -= currentBet;
+                let bet = handBets[activeHandIdx];
+                if (balance < bet) return;
+                balance -= bet;
+                handBets[activeHandIdx] += bet;
                 updateBalance();
 
                 let hand = playerHands[activeHandIdx];
                 hand.push(deck.pop());
                 playSound(1, 0);
-                stopSuspenseMusic();
 
                 let score = calculateScore(hand);
                 renderTable(true);
@@ -358,12 +337,13 @@ def serve_game():
                     memeVideo.play().catch(e => console.log("Audio blocked:", e));
                 }
 
-                setTimeout(standAction, score > 21 ? 2000 : 800);
+                setTimeout(nextHandOrDealer, score > 21 ? 2000 : 800);
             }
 
             function splitAction() {
-                if (balance < currentBet) return;
-                balance -= currentBet;
+                let bet = handBets[0];
+                if (balance < bet) return;
+                balance -= bet;
                 updateBalance();
 
                 let hand = playerHands[0];
@@ -371,22 +351,22 @@ def serve_game():
                     [hand[0], deck.pop()],
                     [hand[1], deck.pop()]
                 ];
+                handBets = [bet, bet];
                 activeHandIdx = 0;
 
                 renderTable(true);
-                checkSuspenseCondition();
-                document.getElementById('btn-split').disabled = true;
-                document.getElementById('btn-double').disabled = balance < currentBet;
+                checkInitialState();
             }
 
             function standAction() {
-                stopSuspenseMusic();
+                nextHandOrDealer();
+            }
+
+            function nextHandOrDealer() {
                 if (activeHandIdx < playerHands.length - 1) {
                     activeHandIdx++;
                     renderTable(true);
-                    checkSuspenseCondition();
-                    document.getElementById('btn-double').disabled = balance < currentBet;
-                    document.getElementById('btn-split').disabled = true;
+                    checkInitialState();
                 } else {
                     resolveDealerTurn();
                 }
@@ -394,7 +374,6 @@ def serve_game():
 
             function resolveDealerTurn() {
                 gameOver = true;
-                stopSuspenseMusic();
                 let allBust = playerHands.every(h => calculateScore(h) > 21);
                 
                 if (allBust) {
@@ -415,13 +394,14 @@ def serve_game():
             function calculatePayouts() {
                 let dScore = calculateScore(dealerHand);
                 
-                playerHands.forEach(hand => {
+                playerHands.forEach((hand, idx) => {
                     let pScore = calculateScore(hand);
+                    let bet = handBets[idx];
                     if (pScore <= 21) {
                         if (dScore > 21 || pScore > dScore) {
-                            balance += (pScore === 21 && hand.length === 2) ? currentBet * 2.5 : currentBet * 2;
+                            balance += (pScore === 21 && hand.length === 2) ? bet * 2.5 : bet * 2;
                         } else if (pScore === dScore) {
-                            balance += currentBet;
+                            balance += bet;
                         }
                     }
                 });
